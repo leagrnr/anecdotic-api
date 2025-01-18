@@ -3,9 +3,24 @@ CREATE DATABASE anecdotic;
 \c anecdotic
 
 CREATE TABLE IF NOT EXISTS facts (
-     id SERIAL PRIMARY KEY,
-     fact TEXT NOT NULL
+                                     id SERIAL PRIMARY KEY,
+                                     fact TEXT NOT NULL
 );
+
+DELETE FROM facts
+WHERE id NOT IN (
+    SELECT MIN(id) FROM facts GROUP BY fact
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'facts' AND constraint_name = 'unique_fact'
+    ) THEN
+ALTER TABLE facts ADD CONSTRAINT unique_fact UNIQUE (fact);
+END IF;
+END $$;
 
 INSERT INTO facts (fact) VALUES
      ('Les escargots peuvent dormir pendant trois ans d''affilée.'),
@@ -32,4 +47,5 @@ INSERT INTO facts (fact) VALUES
      ('Les chameaux ont trois paupières.'),
      ('Les ours polaires sont invisibles aux caméras infrarouges.'),
      ('Les chats ont des dents de lait.'),
-     ('Les dauphins dorment avec un œil ouvert.');
+     ('Les dauphins dorment avec un œil ouvert.')
+ON CONFLICT (fact) DO NOTHING;
